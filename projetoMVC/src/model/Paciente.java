@@ -12,6 +12,9 @@ public class Paciente extends Pessoa{
         this.convenio = convenio;
     }
 
+    public Paciente() {
+    }
+
     public String getTipoSanguineo() {
         return tipoSanguineo;
     }

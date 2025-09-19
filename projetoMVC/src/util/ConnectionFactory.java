@@ -7,9 +7,9 @@ import java.sql.ResultSet;
 
 public class ConnectionFactory {
 
-    public static final String PATH = "jdbc:postgresql://localhost:5432/superdev_db";
-    public static final String USER = "postgres";
-    public static final String PASSWORD = "admin";
+    public static final String PATH = "jdbc:postgresql://localhost:5432/clinicamedica";
+    public static final String USER = "fmartins";
+    public static final String PASSWORD = "masterkey";
 
     public static Connection getConnection() {
         try {
