@@ -1,7 +1,8 @@
 package DAO;
 
 import model.Convenio;
-import model.Paciente;
+import model.Especialidade;
+import model.Medico;
 import util.ConnectionFactory;
 
 import java.sql.Connection;
@@ -11,11 +12,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PacienteDao implements GenericDAO{
+public class MedicoDao implements GenericDAO{
 
     private Connection connection;
 
-    public PacienteDao () throws Exception {
+    public MedicoDao() throws Exception {
         try {
             this.connection = ConnectionFactory.getConnection();
         } catch (Exception e) {
@@ -26,10 +27,10 @@ public class PacienteDao implements GenericDAO{
     @Override
     public List<Object> getAll() {
 
-        List<Object> pacienteList = new ArrayList<>();
+        List<Object> medicoList = new ArrayList<>();
         PreparedStatement stmt = null;
         ResultSet rs = null;
-        String sql = "SELECT * FROM pacientes ORDER BY id_paciente";
+        String sql = "SELECT * FROM medicos ORDER BY id_medico";
 
         try {
             stmt = this.connection.prepareStatement(sql);
@@ -38,53 +39,67 @@ public class PacienteDao implements GenericDAO{
             // rs.next() vai buscar o próximo registro encontrado no SELECT anterior
             // para CADA registro encontrado, será executado o bloco abaixo
             while (rs.next()) {
-                // Declaro um objeto da classe Paciente pra ser populado com as informações do bancc
-                Paciente paciente = new Paciente();
+                // Declaro um objeto da classe Medico pra ser populado com as informações do bancc
+                Medico medico = new Medico();
 
                 // Fazemos um match entre o nome da coluna no banco de dados com o nome do atributo
                 // correspondente do objeto
-                paciente.setId(rs.getLong("id_paciente"));
-                paciente.setNome(rs.getString("nome"));
-                paciente.setIdade(rs.getInt("idade"));
-                paciente.setTelefone(rs.getString("telefone"));
-                paciente.setTipoSanguineo(rs.getString("tipo_sanguineo"));
-                paciente.setDoador(rs.getBoolean("doador"));
+                medico.setId(rs.getLong("id_medico"));
+                medico.setNome(rs.getString("nome"));
+                medico.setIdade(rs.getInt("idade"));
+                medico.setTelefone(rs.getString("telefone"));
+                medico.setCrm(rs.getString("crm"));
+
+                String especialidadeStr = rs.getString("especialidade");
+                Especialidade especialidadeEnum = Especialidade.fromDescricao(especialidadeStr);
+                medico.setEspecialidade(especialidadeEnum);
+
                 String convenioStr = rs.getString("convenio");
-                Convenio convenioEnum = Convenio.valueOf(convenioStr);
-                paciente.setConvenio(convenioEnum);
-                // Inserir este objeto paciente na lista
-                pacienteList.add(paciente);
+                Convenio convenioEnum = Convenio.fromDescricaoConvenio(convenioStr);
+                medico.setConvenio(convenioEnum);
+
+                medico.setEfetivo(rs.getBoolean("efetivo"));
+
+                // Inserir este objeto medico na lista
+                medicoList.add(medico);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             this.closeConnection(stmt, rs);
         }
-        return pacienteList;
+        return medicoList;
     }
 
     @Override
     public Object getById(int id) {
-        Paciente pacienteEncontrado = null;
+        Medico medicoEncontrado = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
-        String sql = "SELECT * FROM pacientes WHERE id_paciente = ?";
+        String sql = "SELECT * FROM medicos WHERE id_medico = ?";
         try {
             stmt = this.connection.prepareStatement(sql);
             stmt.setInt(1, id);
             rs = stmt.executeQuery();
 
             if (rs.next()) {
-                pacienteEncontrado = new Paciente();
-                pacienteEncontrado.setId(rs.getLong("id_paciente"));
-                pacienteEncontrado.setNome(rs.getString("nome"));
-                pacienteEncontrado.setIdade(rs.getInt("idade"));
-                pacienteEncontrado.setTelefone(rs.getString("telefone"));
-                pacienteEncontrado.setTipoSanguineo(rs.getString("tipo_sanguineo"));
-                pacienteEncontrado.setDoador(rs.getBoolean("doador"));
+                medicoEncontrado = new Medico();
+                medicoEncontrado.setId(rs.getLong("id_medico"));
+                medicoEncontrado.setNome(rs.getString("nome"));
+                medicoEncontrado.setIdade(rs.getInt("idade"));
+                medicoEncontrado.setTelefone(rs.getString("telefone"));
+                medicoEncontrado.setCrm(rs.getString("crm"));
+
+                String especialidadeStr = rs.getString("especialidade");
+                Especialidade especialidadeEnum = Especialidade.fromDescricao(especialidadeStr);
+                medicoEncontrado.setEspecialidade(especialidadeEnum);
+
                 String convenioStr = rs.getString("convenio");
                 Convenio convenioEnum = Convenio.fromDescricaoConvenio(convenioStr);
-                pacienteEncontrado.setConvenio(convenioEnum);
+                medicoEncontrado.setConvenio(convenioEnum);
+
+                medicoEncontrado.setEfetivo(rs.getBoolean("efetivo"));
+
             }
 
         } catch (SQLException e) {
@@ -93,7 +108,7 @@ public class PacienteDao implements GenericDAO{
             this.closeConnection(stmt, rs);
         }
 
-        return pacienteEncontrado;
+        return medicoEncontrado;
     }
 
 
@@ -101,38 +116,46 @@ public class PacienteDao implements GenericDAO{
     public Boolean insert(Object object) {
 
         // Convertendo o objeto genérico em um objeto do tipo específico
-        Paciente paciente = (Paciente) object;
+        Medico medico = (Medico) object;
 
         // Instanciando um objeto da classe que "formata" o comando sql
         PreparedStatement stmt = null;
 
-        // Escrevendo a sql para inserir um novo registro na tabela 'paciente'
-        String sql = "INSERT INTO pacientes (nome, idade, telefone, tipo_sanguineo, doador, convenio) VALUES (?,?,?,?,?,?)";
+        // Escrevendo a sql para inserir um novo registro na tabela 'medico'
+        String sql = "INSERT INTO medicos (nome, idade, telefone, crm, especialidade, convenio, efetivo) VALUES (?,?,?,?,?,?,?)";
 
         try {
             // Transforma a String sql em um comando válido para ser executado no banco
             stmt = this.connection.prepareStatement(sql);
 
             // Inserindo valor em cada ponto de interrogação de forma sequencial
-            // onde cada ? refere-se à uma coluna da tabela 'paciente'
+            // onde cada ? refere-se à uma coluna da tabela 'medico'
             // atentando para o tipo de cada coluna com o tipo do valor a ser enviado
 
-            stmt.setString(1, paciente.getNome());
-            stmt.setInt(2, paciente.getIdade());
-            stmt.setString(3, paciente.getTelefone());
-            stmt.setString(4, paciente.getTipoSanguineo());
-            stmt.setBoolean(5, paciente.isDoador());
+            stmt.setString(1, medico.getNome());
+            stmt.setInt(2, medico.getIdade());
+            stmt.setString(3, medico.getTelefone());
+            stmt.setString(4, medico.getCrm());
+
+            if (medico.getEspecialidade() != null) {
+                stmt.setString(5, medico.getEspecialidade().getDescricao());
+            } else {
+                stmt.setNull(5, java.sql.Types.VARCHAR);  // se for nulo, setar null no banco
+            }
 
             // Para o enum convenio, envie o nome (string) dele para o banco
-            if (paciente.getConvenio() != null) {
-                stmt.setString(6, paciente.getConvenio().name());
+            if (medico.getConvenio() != null) {
+                stmt.setString(6, medico.getConvenio().getDescricao());
             } else {
                 stmt.setNull(6, java.sql.Types.VARCHAR);  // se for nulo, setar null no banco
             }
+
+            stmt.setBoolean(7, medico.isEfetivo());
+
             stmt.execute();
             return true;
         } catch (SQLException e) {
-            System.out.println("Problemas ao inserir paciente. Erro: " + e.getMessage());
+            System.out.println("Problemas ao inserir medico. Erro: " + e.getMessage());
             e.printStackTrace();
             return false;
         } finally {
@@ -142,33 +165,43 @@ public class PacienteDao implements GenericDAO{
 
     @Override
     public Boolean update(Object object) {
-        Paciente paciente = (Paciente) object;
+        Medico medico = (Medico) object;
         PreparedStatement stmt = null;
         String sql = "" +
-                "UPDATE pacientes SET " +
+                "UPDATE medicos SET " +
                 "   nome = ?, " +
                 "   idade = ?, " +
                 "   telefone = ?, " +
-                "   tipo_sanguineo = ?, " +
-                "   doador = ?, " +
-                "   convenio = ? " +
+                "   crm = ?, " +
+                "   especialidade = ?, " +
+                "   convenio = ?, " +
+                "   efetivo = ? " +
                 "WHERE " +
-                "   id_paciente = ?";
+                "   id_medico = ?";
         try {
             stmt = this.connection.prepareStatement(sql);
-            stmt.setString(1, paciente.getNome());
-            stmt.setInt(2, paciente.getIdade());
-            stmt.setString(3, paciente.getTelefone());
-            stmt.setString(4, paciente.getTipoSanguineo());
-            stmt.setBoolean(5, paciente.isDoador());
+            stmt.setString(1, medico.getNome());
+            stmt.setInt(2, medico.getIdade());
+            stmt.setString(3, medico.getTelefone());
+
+            stmt.setString(4, medico.getCrm());
+
+            if (medico.getEspecialidade() != null) {
+                stmt.setString(5, medico.getEspecialidade().getDescricao());
+            } else {
+                stmt.setNull(5, java.sql.Types.VARCHAR);  // se for nulo, setar null no banco
+            }
 
             // Para o enum convenio, envie o nome (string) dele para o banco
-            if (paciente.getConvenio() != null) {
-                stmt.setString(6, paciente.getConvenio().name());
+            if (medico.getConvenio() != null) {
+                stmt.setString(6, medico.getConvenio().getDescricao());
             } else {
                 stmt.setNull(6, java.sql.Types.VARCHAR);  // se for nulo, setar null no banco
             }
-            stmt.setLong(7, paciente.getId());
+
+            stmt.setBoolean(7, medico.isEfetivo());
+
+            stmt.setLong(8, medico.getId());
             stmt.execute();
             return true;
         } catch (SQLException e) {
@@ -182,7 +215,7 @@ public class PacienteDao implements GenericDAO{
     @Override
     public void delete(int id) {
         PreparedStatement stmt = null;
-        String sql = "DELETE FROM pacientes WHERE id_paciente = ?";
+        String sql = "DELETE FROM medicos WHERE id_medico = ?";
         try {
             stmt = this.connection.prepareStatement(sql);
             stmt.setInt(1, id);
